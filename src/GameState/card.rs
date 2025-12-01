@@ -1,5 +1,6 @@
+#[derive(Debug)]
 pub struct CardTemplate {}
 
 const Forest: CardTemplate = CardTemplate {};
 
-pub(crate) type Card = &'static CardTemplate;
+pub type Card = &'static CardTemplate;
