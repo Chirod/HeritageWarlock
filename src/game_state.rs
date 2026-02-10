@@ -8,35 +8,35 @@ enum Color {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-struct Card {}
+pub struct Card {}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-enum HandObject {
+pub enum HandObject {
     Card(Card),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-enum LibraryObject {
+pub enum LibraryObject {
     Card(Card),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-enum GraveyardObject {
+pub enum GraveyardObject {
     Card(Card),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-enum ExileObject {
+pub enum ExileObject {
     Card(Card),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-enum BattlefieldObject {
+pub enum BattlefieldObject {
     Card(Card),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-enum StackObject {
+pub enum StackObject {
     Card(Card),
 }
 
@@ -53,31 +53,26 @@ pub struct ManaPool {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PlayerSnapshot {
-    life: u64,
-    mana_pool: ManaPool,
-    hand: Vec<HandObject>,
-    library: Vec<LibraryObject>,
-    graveyard: Vec<GraveyardObject>,
-    exile: Vec<ExileObject>,
+    pub life: u64,
+    pub mana_pool: ManaPool,
+    pub hand: Vec<HandObject>,
+    pub library: Vec<LibraryObject>,
+    pub graveyard: Vec<GraveyardObject>,
+    pub exile: Vec<ExileObject>,
+    pub drawn_from_empty_since_last_check: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GameSnapshot {
-    player_states: Vec<PlayerSnapshot>,
-    battlefield: Vec<BattlefieldObject>,
-    stack: Vec<StackObject>,
+    pub player_states: Vec<PlayerSnapshot>,
+    pub battlefield: Vec<BattlefieldObject>,
+    pub stack: Vec<StackObject>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GameState {
     current_state: Box<GameSnapshot>,
     previous_states: Vec<Box<GameSnapshot>>,
-}
-
-type ActionError = ();
-
-trait Action {
-    fn perform(&self, game_state: &GameState) -> Result<GameSnapshot, ActionError>;
 }
 
 impl ManaPool {
@@ -103,6 +98,7 @@ impl PlayerSnapshot {
             library: Vec::new(),
             graveyard: Vec::new(),
             exile: Vec::new(),
+            drawn_from_empty_since_last_check: false,
         }
     }
 }
@@ -130,5 +126,17 @@ impl GameState {
             &mut self.current_state,
             Box::new(snapshot),
         ));
+    }
+
+    pub fn current_state(&self) -> &GameSnapshot {
+        &self.current_state
+    }
+}
+
+impl From<LibraryObject> for HandObject {
+    fn from(library_object: LibraryObject) -> Self {
+        match library_object {
+            LibraryObject::Card(card) => HandObject::Card(card),
+        }
     }
 }
