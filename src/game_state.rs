@@ -1,5 +1,4 @@
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Card {}
+use crate::card::Card;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum HandObject {
@@ -33,13 +32,13 @@ pub enum StackObject {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ManaPool {
-    white: u64,
-    blue: u64,
-    black: u64,
-    red: u64,
-    green: u64,
-    colorless: u64,
-    colorless_artifact_spells_only: u64,
+    pub white: u64,
+    pub blue: u64,
+    pub black: u64,
+    pub red: u64,
+    pub green: u64,
+    pub colorless: u64,
+    pub colorless_artifact_spells_only: u64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

@@ -1,4 +1,5 @@
 use crate::PlayerAgent;
+use crate::card::ManaType;
 use crate::game_state::GameSnapshot;
 
 pub type ActionError = crate::MainExceptional;
@@ -41,6 +42,36 @@ impl UntapAllPermanentsAction {
 impl ChoicelessAction for UntapAllPermanentsAction {
     fn perform_choiceless(&self, game_state: &GameSnapshot) -> Result<GameSnapshot, ActionError> {
         let game_state = game_state.clone();
+        Ok(game_state)
+    }
+}
+
+pub struct PayManaAction {
+    mana_type: ManaType,
+    player_index: usize,
+}
+
+impl PayManaAction {
+    pub fn new(mana_type: ManaType, player_index: usize) -> Self {
+        Self {
+            mana_type,
+            player_index,
+        }
+    }
+}
+
+impl ChoicelessAction for PayManaAction {
+    fn perform_choiceless(&self, game_state: &GameSnapshot) -> Result<GameSnapshot, ActionError> {
+        let mut game_state = game_state.clone();
+        let mana_pool = &mut game_state.player_states[self.player_index].mana_pool;
+        match self.mana_type {
+            ManaType::Colorless => mana_pool.colorless -= 1,
+            ManaType::White => mana_pool.white -= 1,
+            ManaType::Blue => mana_pool.blue -= 1,
+            ManaType::Black => mana_pool.black -= 1,
+            ManaType::Red => mana_pool.red -= 1,
+            ManaType::Green => mana_pool.green -= 1,
+        }
         Ok(game_state)
     }
 }
