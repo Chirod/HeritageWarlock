@@ -1,13 +1,4 @@
 #[derive(Debug, Clone, PartialEq, Eq)]
-enum Color {
-    White,
-    Blue,
-    Black,
-    Red,
-    Green,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Card {}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -60,6 +51,7 @@ pub struct PlayerSnapshot {
     pub graveyard: Vec<GraveyardObject>,
     pub exile: Vec<ExileObject>,
     pub drawn_from_empty_since_last_check: bool,
+    pub has_lost: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -99,6 +91,7 @@ impl PlayerSnapshot {
             graveyard: Vec::new(),
             exile: Vec::new(),
             drawn_from_empty_since_last_check: false,
+            has_lost: false,
         }
     }
 }

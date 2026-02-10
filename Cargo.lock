@@ -3,5 +3,5 @@
 version = 4
 
 [[package]]
-name = "MTG"
+name = "mtg"
 version = "0.1.0"
