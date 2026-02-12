@@ -1,0 +1,36 @@
+WHITESPACE = _{" " | "\n"}
+GREEN_MANA = {"{G}"}
+BLUE_MANA = {"{U}"}
+WHITE_MANA = {"{W}"}
+BLACK_MANA = {"{B}"}
+RED_MANA = {"{R}"}
+COLORLESS_MANA = {"{C}"}
+NON_GENERIC_MANA = _{ GREEN_MANA | BLUE_MANA | WHITE_MANA | BLACK_MANA | RED_MANA | COLORLESS_MANA }
+TAP = {"{T}"}
+NUMBER = {(ASCII_NONZERO_DIGIT ~ ASCII_DIGIT+) | ASCII_DIGIT}
+GENERIC_MANA = {"{" ~ NUMBER ~ "}"}
+COST = {(GENERIC_MANA | NON_GENERIC_MANA | TAP)+}
+MANA_COST = { (GENERIC_MANA | NON_GENERIC_MANA)+ }
+COST_COLON = { COST ~ ":" }
+ACTIVATED_ABILITY = {COST ~ ":" ~ ACTION ~ "."}
+
+CARDNAME = { PEEK }
+
+DAMAGE_SOURCE = { CARDNAME }
+DAMAGE_DESTINATION = { "any target" }
+ACTION = { ADD_MANA | DEAL_DAMAGE }
+ADD_MANA = { ("Add" | "add") ~ NON_GENERIC_MANA+}
+DEAL_DAMAGE = { DAMAGE_SOURCE ~ "deals" ~ NUMBER ~ "damage to" ~ DAMAGE_DESTINATION }
+
+PERMANENT_CARD_TEXT = { (ACTIVATED_ABILITY)+ }
+SORCERY_CARD_TEXT = { (ACTION ~ ".")* }
+
+SUPER_TYPE = { "Legendary" | "Basic" }
+TYPE = { "Instant" | "Artifact" | "Enchantment" | "Land" | "Planeswalker" | "Sorcery" | "Battle" | "Kindred" | "Creature" }
+CREATURE_TYPE = { "Beast" | "Bird" | "Cat" | "Dog" | "Dragon" | "Elemental" | "Faerie" | "Fish" | "Giant" | "Horse" | "Human" | "Insect" | "Kithkin" | "Merfolk" | "Minion" | "Ooze" | "Orc" | "Pegasus" | "Phantasm" | "Plant" | "Rat" | "Spirit" | "Squirrel" | "Thopter" | "Treant" | "Vampire" | "Wall" | "Wolf" | "Zombie" }
+TYPELINE = { SUPER_TYPE* ~ TYPE* ~ "—"? ~ CREATURE_TYPE* }
+
+ASCII_WORD = @{ ASCII_ALPHANUMERIC+ }
+CARD_NAME = @{ ASCII_WORD ~ (" " ~ ASCII_WORD) }
+
+FULL_CARD = { PUSH(CARD_NAME) ~ MANA_COST? ~ TYPELINE ~ (PERMANENT_CARD_TEXT | SORCERY_CARD_TEXT)}

@@ -1,5 +1,12 @@
 use crate::action::Action;
 
+use pest::Parser;
+use pest_derive::Parser;
+
+#[derive(Parser)]
+#[grammar = "gram/card_text_grammar.pest"]
+pub struct CardParser;
+
 pub enum ManaType {
     Colorless,
     White,
@@ -15,16 +22,6 @@ enum SuperType {
     Legendary,
 }
 
-impl SuperType {
-    pub fn parse(input: &str) -> Option<SuperType> {
-        match input {
-            "Basic" => Some(SuperType::Basic),
-            "Legendary" => Some(SuperType::Legendary),
-            _ => None,
-        }
-    }
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum Type {
     Artifact,
@@ -38,38 +35,12 @@ enum Type {
     Kindred,
 }
 
-impl Type {
-    pub fn parse(input: &str) -> Option<Type> {
-        match input {
-            "Artifact" => Some(Type::Artifact),
-            "Creature" => Some(Type::Creature),
-            "Enchantment" => Some(Type::Enchantment),
-            "Instant" => Some(Type::Instant),
-            "Land" => Some(Type::Land),
-            "Planeswalker" => Some(Type::Planeswalker),
-            "Sorcery" => Some(Type::Sorcery),
-            "Battle" => Some(Type::Battle),
-            "Kindred" => Some(Type::Kindred),
-            _ => None,
-        }
-    }
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum CreatureType {
     Elf,
 }
 
-impl CreatureType {
-    pub fn parse(input: &str) -> Option<CreatureType> {
-        match input {
-            "Elf" => Some(CreatureType::Elf),
-            _ => None,
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Default, Debug, Clone, PartialEq, Eq)]
 struct Typeline {
     super_types: Vec<SuperType>,
     types: Vec<Type>,
@@ -77,26 +48,28 @@ struct Typeline {
 }
 
 impl Typeline {
-    pub fn parse(input: &str) -> Option<Self> {
-        let mut super_types = Vec::new();
-        let mut types = Vec::new();
-        let mut creature_types = Vec::new();
-
-        for part in input.split_whitespace() {
-            if let Some(super_type) = SuperType::parse(part) {
-                super_types.push(super_type);
-            } else if let Some(type_) = Type::parse(part) {
-                types.push(type_);
-            } else if let Some(creature_type) = CreatureType::parse(part) {
-                creature_types.push(creature_type);
-            }
-        }
-
-        Some(Self {
+    pub fn new(
+        super_types: Vec<SuperType>,
+        types: Vec<Type>,
+        creature_types: Vec<CreatureType>,
+    ) -> Self {
+        Self {
             super_types,
             types,
             creature_types,
-        })
+        }
+    }
+
+    pub fn append_super_type(&mut self, super_type: SuperType) {
+        self.super_types.push(super_type);
+    }
+
+    pub fn append_type(&mut self, type_: Type) {
+        self.types.push(type_);
+    }
+
+    pub fn append_creature_type(&mut self, creature_type: CreatureType) {
+        self.creature_types.push(creature_type);
     }
 }
 
@@ -104,29 +77,68 @@ struct Cost {
     actions: Vec<Box<dyn Action>>,
 }
 
+impl Cost {
+    fn new(actions: Vec<Box<dyn Action>>) -> Self {
+        Self { actions }
+    }
+}
+
 struct ActivatedAbility {
     cost: Cost,
     effect: Box<dyn Action>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Default, Debug, Clone, PartialEq, Eq)]
 pub struct Card {
     name: String,
     types: Typeline,
 }
 
-mod parser {
-    use pest::Parser;
+impl Card {
+    pub fn parse(input: &str) -> Result<Self, pest::error::Error<Rule>> {
+        let pairs = CardParser::parse(Rule::FULL_CARD, input)?;
+        let mut card = Self::default();
 
-    #[derive(Parser)]
-    #[grammar = "gram/card_text_grammar.pest"]
-    struct CardParser;
+        for pair in pairs {
+            match pair.as_rule() {
+                Rule::FULL_CARD => {
+                    for pair in pair.into_inner() {
+                        match pair.as_rule() {
+                            Rule::CARD_NAME => card.name = pair.as_str().to_string(),
+                            Rule::MANA_COST => card.mana_cost = ManaCost::parse(pair.as_str()),
+                            Rule::TYPE_LINE => card.types = Typeline::parse(pair.as_str()),
+                            Rule::PERMANENT_CARD_TEXT => card.text = pair.as_str().to_string(),
+                            Rule::SORCERY_CARD_TEXT =>
+                            _ => unreachable!(),
+                        }
+                    }
+                    Ok(card)
+                }
+                _ => unreachable!(),
+            }
+        }
+        Ok(card)
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use pest::Parser;
 
     #[test]
-    fn test_card_parsing() {}
+    fn test_card_parsing() {
+        let mut pairs = CardParser::parse(
+            Rule::PERMANENT_CARD_TEXT,
+            "{T}: Add {G}. {2}{G}{U}: Add {W}{U}{B}{R}{G}{C}.",
+        )
+        .unwrap();
+        let elem = pairs.next().unwrap();
+        assert_eq!(elem.as_rule(), Rule::PERMANENT_CARD_TEXT);
+        assert_eq!(
+            elem.as_str(),
+            "{T}: Add {G}. {2}{G}{U}: Add {W}{U}{B}{R}{G}{C}."
+        );
+        assert_eq!(pairs.next(), None);
+    }
 }
