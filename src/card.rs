@@ -16,6 +16,17 @@ pub enum ManaType {
     Green,
 }
 
+struct ManaCost {
+    pub white: u8,
+    pub blue: u8,
+    pub black: u8,
+    pub red: u8,
+    pub green: u8,
+    pub colorless: u8,
+    pub generic: u8,
+}
+
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum SuperType {
     Basic,
@@ -95,6 +106,22 @@ pub struct Card {
 }
 
 impl Card {
+    fn parse_mana_cost(pair: CardParser::Pair<ManaCost>) -> ManaCost {
+        let mut mana_cost = ManaCost::new(0, 0, 0, 0, 0);
+        for pair in pair.into_inner() {
+            match pair.as_rule() {
+                Rule::GREEN_MANA => mana_cost.green += 1,
+                Rule::WHITE_MANA => mana_cost.white += 1,
+                Rule::BLUE_MANA => mana_cost.blue += 1,
+                Rule::BLACK_MANA => mana_cost.black += 1,
+                Rule::RED_MANA => mana_cost.red += 1,
+                Rule::COLORLESS_MANA => mana_cost.colorless += 1,
+                Rule::GENERIC_MANA => mana_cost.generic += pair.into_inner().next().unwrap().as_str().parse().unwrap(),
+                _ => unreachable!(),
+            }
+        }
+        ManaPool::new(0, 0, 0, 0, 0)
+    }
     pub fn parse(input: &str) -> Result<Self, pest::error::Error<Rule>> {
         let pairs = CardParser::parse(Rule::FULL_CARD, input)?;
         let mut card = Self::default();
@@ -105,10 +132,10 @@ impl Card {
                     for pair in pair.into_inner() {
                         match pair.as_rule() {
                             Rule::CARD_NAME => card.name = pair.as_str().to_string(),
-                            Rule::MANA_COST => card.mana_cost = ManaCost::parse(pair.as_str()),
-                            Rule::TYPE_LINE => card.types = Typeline::parse(pair.as_str()),
-                            Rule::PERMANENT_CARD_TEXT => card.text = pair.as_str().to_string(),
-                            Rule::SORCERY_CARD_TEXT =>
+                            Rule::MANA_COST => card.mana_cost = Self::parse_mana_cost(pair),
+                            Rule::TYPE_LINE => todo!(),
+                            Rule::PERMANENT_CARD_TEXT => todo!(),
+                            Rule::SORCERY_CARD_TEXT => todo!()
                             _ => unreachable!(),
                         }
                     }
