@@ -1,20 +1,52 @@
 use crate::PlayerAgent;
+use crate::card::ManaType;
 use crate::game_state::GameSnapshot;
 use std::fmt::Debug;
 
 pub type ActionError = crate::MainExceptional;
 
 #[derive(Debug, Clone)]
-pub enum Action {
-    UntapPlayersPermanents { player_index: usize },
-    CleanupAction { player_index: usize },
-    DrawCardAction { player_index: usize },
-    DrawCardsAction { player_index: usize, count: usize },
-    MultiAction(Vec<Action>),
+pub enum PlayerIdentifier {
+    Index(usize),
 }
 
-impl Action {
-    pub fn perform(
+#[derive(Debug, Clone)]
+pub enum PermanentIdentifier {}
+
+
+#[derive(Debug, Clone)]
+pub enum DamageDestination {
+    Player(PlayerIdentifier),
+    Permanent(PermanentIdentifier),
+}
+
+#[derive(Debug, Clone)]
+pub enum Action {
+    MultiAction(Vec<Action>),
+    UntapPlayersPermanents {
+        player: PlayerIdentifier,
+    },
+    CleanupAction {
+        player: PlayerIdentifier,
+    },
+    DrawCardAction {
+        player: PlayerIdentifier,
+    },
+    DrawCardsAction {
+        player: PlayerIdentifier,
+        count: usize,
+    },
+    AddMana {
+        player: PlayerIdentifier,
+        mana: Vec<ManaType>,
+    },
+    DealDamage {
+        destination: DamageDestination,
+        amount: u64,
+    }
+}
+
+pub fn perform(
         self,
         game_state: &GameSnapshot,
         players: &mut [&mut dyn PlayerAgent],
@@ -40,6 +72,14 @@ impl Action {
                 }
                 Ok(game_state.clone())
             }
+            Self::AddMana {
+                player,
+                mana,
+            } => Self::add_mana_action(player, mana, game_state),
+            Self::DealDamage {
+                destination,
+                amount,
+            } => Self::deal_damage(destination, amount, game_state),
         }
     }
 
