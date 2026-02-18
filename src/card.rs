@@ -1,5 +1,4 @@
 use crate::action::Action;
-
 use pest::Parser;
 use pest_derive::Parser;
 
@@ -7,6 +6,7 @@ use pest_derive::Parser;
 #[grammar = "gram/card_text_grammar.pest"]
 pub struct CardParser;
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ManaType {
     Colorless,
     White,
@@ -16,6 +16,7 @@ pub enum ManaType {
     Green,
 }
 
+#[derive(Default, Debug, Clone, PartialEq, Eq)]
 struct ManaCost {
     pub white: u8,
     pub blue: u8,
@@ -26,11 +27,33 @@ struct ManaCost {
     pub generic: u8,
 }
 
+impl ManaCost {
+    pub fn new(
+        white: u8,
+        blue: u8,
+        black: u8,
+        red: u8,
+        green: u8,
+        colorless: u8,
+        generic: u8,
+    ) -> Self {
+        Self {
+            white,
+            blue,
+            black,
+            red,
+            green,
+            colorless,
+            generic,
+        }
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum SuperType {
     Basic,
     Legendary,
+    World,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -48,17 +71,23 @@ enum Type {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum CreatureType {
-    Elf,
+    Beast,
+    Bird,
+    Cat,
+    Dog,
+    Dragon,
+    Elemental,
+    Giant,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Eq)]
-struct Typeline {
+struct TypeLine {
     super_types: Vec<SuperType>,
     types: Vec<Type>,
     creature_types: Vec<CreatureType>,
 }
 
-impl Typeline {
+impl TypeLine {
     pub fn new(
         super_types: Vec<SuperType>,
         types: Vec<Type>,
@@ -84,30 +113,41 @@ impl Typeline {
     }
 }
 
+#[derive(Debug, Clone)]
 struct Cost {
-    actions: Vec<Box<dyn Action>>,
+    actions: Vec<Action>,
 }
 
 impl Cost {
-    fn new(actions: Vec<Box<dyn Action>>) -> Self {
+    fn new(actions: Vec<Action>) -> Self {
         Self { actions }
     }
 }
 
+#[derive(Debug, Clone)]
 struct ActivatedAbility {
     cost: Cost,
-    effect: Box<dyn Action>,
+    effect: Action,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
+enum Ability {
+    Activated(ActivatedAbility),
+}
+
+#[derive(Default, Debug, Clone)]
 pub struct Card {
     name: String,
-    types: Typeline,
+    types: TypeLine,
+    mana_cost: ManaCost,
+    abilities: Vec<Ability>,
 }
 
+type Pair<'a> = pest::iterators::Pair<'a, Rule>;
+
 impl Card {
-    fn parse_mana_cost(pair: CardParser::Pair<ManaCost>) -> ManaCost {
-        let mut mana_cost = ManaCost::new(0, 0, 0, 0, 0);
+    fn parse_mana_cost(pair: Pair) -> ManaCost {
+        let mut mana_cost = ManaCost::default();
         for pair in pair.into_inner() {
             match pair.as_rule() {
                 Rule::GREEN_MANA => mana_cost.green += 1,
@@ -116,12 +156,62 @@ impl Card {
                 Rule::BLACK_MANA => mana_cost.black += 1,
                 Rule::RED_MANA => mana_cost.red += 1,
                 Rule::COLORLESS_MANA => mana_cost.colorless += 1,
-                Rule::GENERIC_MANA => mana_cost.generic += pair.into_inner().next().unwrap().as_str().parse().unwrap(),
+                Rule::GENERIC_MANA => {
+                    mana_cost.generic += pair
+                        .into_inner()
+                        .next()
+                        .unwrap()
+                        .as_str()
+                        .parse::<u8>()
+                        .unwrap()
+                }
                 _ => unreachable!(),
             }
         }
-        ManaPool::new(0, 0, 0, 0, 0)
+        mana_cost
     }
+
+    fn parse_type_line(pair: Pair) -> TypeLine {
+        let mut type_line = TypeLine::default();
+        for pair in pair.into_inner() {
+            match pair.as_rule() {
+                Rule::SUPER_TYPE => match pair.into_inner().next().unwrap().as_rule() {
+                    Rule::LEGENDARY => type_line.super_types.push(SuperType::Legendary),
+                    Rule::BASIC => type_line.super_types.push(SuperType::Basic),
+                    Rule::WORLD => type_line.super_types.push(SuperType::World),
+                    _ => unreachable!(),
+                },
+                Rule::TYPE => match pair.into_inner().next().unwrap().as_rule() {
+                    Rule::CREATURE => type_line.types.push(Type::Creature),
+                    Rule::ARTIFACT => type_line.types.push(Type::Artifact),
+                    Rule::LAND => type_line.types.push(Type::Land),
+                    Rule::PLANESWALKER => type_line.types.push(Type::Planeswalker),
+                    Rule::ENCHANTMENT => type_line.types.push(Type::Enchantment),
+                    Rule::INSTANT => type_line.types.push(Type::Instant),
+                    Rule::SORCERY => type_line.types.push(Type::Sorcery),
+                    Rule::KINDRED => type_line.types.push(Type::Kindred),
+                    Rule::BATTLE => type_line.types.push(Type::Battle),
+                    _ => unreachable!(),
+                },
+                Rule::CREATURE_TYPE => match pair.into_inner().next().unwrap().as_rule() {
+                    Rule::BEAST => type_line.creature_types.push(CreatureType::Beast),
+                    Rule::BIRD => type_line.creature_types.push(CreatureType::Bird),
+                    Rule::CAT => type_line.creature_types.push(CreatureType::Cat),
+                    Rule::DOG => type_line.creature_types.push(CreatureType::Dog),
+                    Rule::DRAGON => type_line.creature_types.push(CreatureType::Dragon),
+                    Rule::ELEMENTAL => type_line.creature_types.push(CreatureType::Elemental),
+                    _ => unreachable!(),
+                },
+                _ => unreachable!(),
+            }
+        }
+        type_line
+    }
+
+    pub fn parse_permanent_text(pair: Pair) -> Vec<Ability> {
+        todo!()
+    }
+
     pub fn parse(input: &str) -> Result<Self, pest::error::Error<Rule>> {
         let pairs = CardParser::parse(Rule::FULL_CARD, input)?;
         let mut card = Self::default();
@@ -133,13 +223,14 @@ impl Card {
                         match pair.as_rule() {
                             Rule::CARD_NAME => card.name = pair.as_str().to_string(),
                             Rule::MANA_COST => card.mana_cost = Self::parse_mana_cost(pair),
-                            Rule::TYPE_LINE => todo!(),
-                            Rule::PERMANENT_CARD_TEXT => todo!(),
-                            Rule::SORCERY_CARD_TEXT => todo!()
+                            Rule::TYPE_LINE => card.types = Self::parse_type_line(pair),
+                            Rule::PERMANENT_CARD_TEXT => {
+                                card.abilities = Self::parse_permanent_text(pair)
+                            }
+                            Rule::SORCERY_CARD_TEXT => todo!(),
                             _ => unreachable!(),
                         }
                     }
-                    Ok(card)
                 }
                 _ => unreachable!(),
             }

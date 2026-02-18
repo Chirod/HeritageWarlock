@@ -25,12 +25,34 @@ DEAL_DAMAGE = { DAMAGE_SOURCE ~ "deals" ~ NUMBER ~ "damage to" ~ DAMAGE_DESTINAT
 PERMANENT_CARD_TEXT = { (ACTIVATED_ABILITY)+ }
 SORCERY_CARD_TEXT = { (ACTION ~ ".")* }
 
-SUPER_TYPE = { "Legendary" | "Basic" }
-TYPE = { "Instant" | "Artifact" | "Enchantment" | "Land" | "Planeswalker" | "Sorcery" | "Battle" | "Kindred" | "Creature" }
-CREATURE_TYPE = { "Beast" | "Bird" | "Cat" | "Dog" | "Dragon" | "Elemental" | "Faerie" | "Fish" | "Giant" | "Horse" | "Human" | "Insect" | "Kithkin" | "Merfolk" | "Minion" | "Ooze" | "Orc" | "Pegasus" | "Phantasm" | "Plant" | "Rat" | "Spirit" | "Squirrel" | "Thopter" | "Treant" | "Vampire" | "Wall" | "Wolf" | "Zombie" }
-TYPELINE = { SUPER_TYPE* ~ TYPE* ~ "—"? ~ CREATURE_TYPE* }
+LEGENDARY = { "Legendary" }
+BASIC = { "Basic" }
+WORLD = { "World" }
+
+SUPER_TYPE = { "Legendary" | "Basic" | "World" }
+
+INSTANT = { "Instant" }
+ARTIFACT = { "Artifact" }
+ENCHANTMENT = { "Enchantment" }
+LAND = { "Land" }
+PLANESWALKER = { "Planeswalker" }
+SORCERY = { "Sorcery" }
+BATTLE = { "Battle" }
+KINDRED = { "Kindred" }
+CREATURE = { "Creature" }
+
+TYPE = { INSTANT | ARTIFACT | ENCHANTMENT | LAND | PLANESWALKER | SORCERY | BATTLE | KINDRED | CREATURE }
+
+BEAST = { "Beast" }
+BIRD = { "Bird" }
+CAT = { "Cat" }
+DOG = { "Dog" }
+DRAGON = { "Dragon" }
+ELEMENTAL = { "Elemental" }
+CREATURE_TYPE = { BEAST | BIRD | CAT | DOG | DRAGON | ELEMENTAL }
+TYPE_LINE = { SUPER_TYPE* ~ TYPE* ~ "—"? ~ CREATURE_TYPE* }
 
 ASCII_WORD = @{ ASCII_ALPHANUMERIC+ }
 CARD_NAME = @{ ASCII_WORD ~ (" " ~ ASCII_WORD) }
 
-FULL_CARD = { PUSH(CARD_NAME) ~ MANA_COST? ~ TYPELINE ~ (PERMANENT_CARD_TEXT | SORCERY_CARD_TEXT)}
+FULL_CARD = { PUSH(CARD_NAME) ~ MANA_COST? ~ TYPE_LINE ~ (PERMANENT_CARD_TEXT | SORCERY_CARD_TEXT)}

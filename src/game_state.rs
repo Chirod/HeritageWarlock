@@ -1,36 +1,36 @@
 use crate::card::Card;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub enum HandObject {
     Card(Card),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub enum LibraryObject {
     Card(Card),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub enum GraveyardObject {
     Card(Card),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub enum ExileObject {
     Card(Card),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub enum BattlefieldObject {
     Card(Card),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub enum StackObject {
     Card(Card),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub struct ManaPool {
     pub white: u64,
     pub blue: u64,
@@ -41,7 +41,7 @@ pub struct ManaPool {
     pub colorless_artifact_spells_only: u64,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub struct PlayerSnapshot {
     pub life: u64,
     pub mana_pool: ManaPool,
@@ -53,14 +53,14 @@ pub struct PlayerSnapshot {
     pub has_lost: bool,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub struct GameSnapshot {
     pub player_states: Vec<PlayerSnapshot>,
     pub battlefield: Vec<BattlefieldObject>,
     pub stack: Vec<StackObject>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub struct GameState {
     current_state: Box<GameSnapshot>,
     previous_states: Vec<Box<GameSnapshot>>,

@@ -3,9 +3,6 @@ mod card;
 mod game_state;
 
 use action::Action;
-use action::CleanupAction;
-use action::DrawCardAction;
-use action::UntapAllPermanentsAction;
 use game_state::GameSnapshot;
 use game_state::GameState;
 
@@ -140,15 +137,22 @@ fn play_turn(
 ) -> Result<GameState, MainExceptional> {
     // untap step
     game.append(
-        UntapAllPermanentsAction::new(active_player_index)
-            .perform(game.current_state(), players)?,
+        Action::UntapPlayersPermanents {
+            player_index: active_player_index,
+        }
+        .perform(game.current_state(), players)?,
     );
     // upkeep priority
     game.append(instant_priority_pass(
         game.current_state(),
         active_player_index,
     )?);
-    game.append(DrawCardAction::new(active_player_index).perform(game.current_state(), players)?);
+    game.append(
+        Action::DrawCardAction {
+            player_index: active_player_index,
+        }
+        .perform(game.current_state(), players)?,
+    );
     // draw step priority
     game.append(instant_priority_pass(
         game.current_state(),
@@ -195,7 +199,12 @@ fn play_turn(
         active_player_index,
     )?);
     // cleanup (possible priority)
-    game.append(CleanupAction::new(active_player_index).perform(game.current_state(), players)?);
+    game.append(
+        Action::CleanupAction {
+            player_index: active_player_index,
+        }
+        .perform(game.current_state(), players)?,
+    );
     Ok(game)
 }
 
