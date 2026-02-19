@@ -1,5 +1,4 @@
 use super::*;
-use crate::action::PlayerIdentifier;
 type Pair<'a> = pest::iterators::Pair<'a, Rule>;
 
 pub struct UnhandledRuleError {
@@ -11,7 +10,7 @@ pub struct UnhandledRuleError {
 type Result<T> = std::result::Result<T, UnhandledRuleError>;
 
 impl Card {
-    fn parse_mana_cost(pair: Pair) -> Result<ManaCost> {
+    pub fn parse_mana_cost(pair: Pair) -> Result<ManaCost> {
         let mut mana_cost = ManaCost::default();
         for pair in pair.into_inner() {
             match pair.as_rule() {
@@ -42,7 +41,7 @@ impl Card {
         Ok(mana_cost)
     }
 
-    fn parse_type_line(pair: Pair) -> Result<TypeLine> {
+    pub fn parse_type_line(pair: Pair) -> Result<TypeLine> {
         let mut type_line = TypeLine::default();
         for pair in pair.into_inner() {
             match pair.as_rule() {
@@ -103,7 +102,7 @@ impl Card {
         Ok(type_line)
     }
 
-    fn parse_activated_ability_cost(pair: Pair) -> Result<Cost> {
+    pub fn parse_activated_ability_cost(pair: Pair) -> Result<Cost> {
         let mut iter = pair.into_inner();
         let pair = iter.next().unwrap();
         assert!(iter.next().is_none());
@@ -118,7 +117,7 @@ impl Card {
         }
     }
 
-    fn parse_add_mana(pair: Pair) -> Result<Action> {
+    pub fn parse_add_mana(pair: Pair) -> Result<Action> {
         let mut iter = pair.into_inner();
         let mut result = Vec::<ManaType>::with_capacity(iter.len());
         for pair in iter {
@@ -138,39 +137,41 @@ impl Card {
                 }
             }
         }
-        Ok(Action::AddMana {
-            player: PlayerIdentifier::Controller,
-            mana: result,
-        })
+        Ok(Action::AddMana(result))
     }
 
-    fn parse_damage_destination(pair: Pair) -> Result<DamageDestination> {
+    pub fn parse_target(pair: Pair) -> Result<TargetCriteria> {
         let mut iter = pair.into_inner();
         let target_pair = iter.next().unwrap();
-        let amount_pair = iter.next().unwrap();
-        assert!(iter.next().is_none());
-        drop(target_pair); // ignore for now
-        drop(amount_pair); // ignore for now
+        assert!(iter.next.is_none());
+        match target_pair.as_rule() {
+            Rule::ANY_TARGET => Ok(TargetCriteria::Any),
+            unhandled => Err(UnhandledRuleError {
+                unhandled,
+                file: file!(),
+                line: line!(),
+            }),
+        }
     }
 
-    fn parse_deal_damage(pair: Pair) -> Result<Action> {
+    pub fn parse_deal_damage_target(pair: Pair) -> Result<Action> {
         let mut iter = pair.into_inner();
-        let source_pair = iter.next().unwrap();
-        let destination_pair = iter.next().unwrap();
+        let _source_pair = iter.next().unwrap();
         let amount_pair = iter.next().unwrap();
+        let target_pair = iter.next().unwrap();
         assert!(iter.next().is_none());
-        drop(source_pair); // ignore for now
-        drop(destination_pair); // ignore for now
-        drop(amount_pair); // ignore for now
+        let target_criteria = parse_target(target_pair)?;
+        let amount = amount_pair.as_str().parse::<u64>()?;
+        Ok(Action::DealDamage(target_criteria, amount))
     }
 
-    fn parse_action(pair: Pair) -> Result<Action> {
+    pub fn parse_action(pair: Pair) -> Result<Action> {
         let mut iter = pair.into_inner();
         let pair = iter.next().unwrap();
         assert!(iter.next().is_none());
         match pair.as_rule() {
             Rule::ADD_MANA => Self::parse_add_mana(pair),
-            Rule::DEAL_DAMAGE => Self::parse_deal_damage(pair),
+            Rule::DEAL_DAMAGE_TARGET => Self::parse_deal_damage_target(pair),
             unhandled => {
                 return Err(UnhandledRuleError {
                     unhandled,
@@ -181,7 +182,7 @@ impl Card {
         }
     }
 
-    fn parse_activated_ability(pair: Pair) -> Result<Ability, pest::error::Error<Rule>> {
+    pub fn parse_activated_ability(pair: Pair) -> Result<Ability, pest::error::Error<Rule>> {
         let mut cost: Option<Cost> = None;
         let mut effect: Option<Action> = None;
         for pair in pair.into_inner() {
@@ -199,13 +200,13 @@ impl Card {
                 }
             }
         }
-        Ok(ActivatedAbility {
+        Ok(Ability::Activated(ActivatedAbility {
             cost: cost.unwrap(),
             effect: effect.unwrap(),
-        })
+        }))
     }
 
-    fn parse_permanent_text(pair: Pair) -> Result<Vec<Ability>, pest::error::Error<Rule>> {
+    pub fn parse_permanent_text(pair: Pair) -> Result<Vec<Ability>, pest::error::Error<Rule>> {
         let mut abilities = Vec::new();
         for pair in pair.into_inner() {
             match pair.as_rule() {

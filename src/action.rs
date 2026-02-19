@@ -6,65 +6,56 @@ use std::fmt::Debug;
 pub type ActionError = crate::MainExceptional;
 
 #[derive(Debug, Clone)]
-pub enum PlayerIdentifier {
+pub enum PerformablePlayerIdentifier {
     Index(usize),
 }
 
 #[derive(Debug, Clone)]
-pub enum PermanentIdentifier {}
-
+pub enum PerformablePermanentIdentifier {}
 
 #[derive(Debug, Clone)]
-pub enum DamageDestination {
-    Player(PlayerIdentifier),
-    Permanent(PermanentIdentifier),
+pub enum PerformableDamageDestination {
+    Player(PerformablePlayerIdentifier),
+    Permanent(PerformablePermanentIdentifier),
 }
 
 #[derive(Debug, Clone)]
-pub enum Action {
-    MultiAction(Vec<Action>),
+pub enum PerformableAction {
+    MultiAction(Vec<PerformableAction>),
     UntapPlayersPermanents {
-        player: PlayerIdentifier,
+        player: PerformablePlayerIdentifier,
     },
     CleanupAction {
-        player: PlayerIdentifier,
+        player: PerformablePlayerIdentifier,
     },
     DrawCardAction {
-        player: PlayerIdentifier,
+        player: PerformablePlayerIdentifier,
     },
     DrawCardsAction {
-        player: PlayerIdentifier,
+        player: PerformablePlayerIdentifier,
         count: usize,
     },
     AddMana {
-        player: PlayerIdentifier,
+        player: PerformablePlayerIdentifier,
         mana: Vec<ManaType>,
     },
-    DealDamage {
-        destination: DamageDestination,
-        amount: u64,
-    }
 }
 
-pub fn perform(
+impl PerformableAction {
+    pub fn perform(
         self,
         game_state: &GameSnapshot,
         players: &mut [&mut dyn PlayerAgent],
     ) -> Result<GameSnapshot, ActionError> {
         match self {
-            Self::CleanupAction { player_index } => {
-                Self::cleanup_action(player_index, game_state, players)
+            Self::CleanupAction { player } => Self::cleanup_action(player, game_state, players),
+            Self::UntapPlayersPermanents { player } => {
+                Self::untap_players_permanents(player, game_state, players)
             }
-            Self::UntapPlayersPermanents { player_index } => {
-                Self::untap_players_permanents(player_index, game_state, players)
+            Self::DrawCardAction { player } => Self::draw_card_action(player, game_state),
+            Self::DrawCardsAction { player, count } => {
+                Self::draw_cards_action(player, count, game_state, players)
             }
-            Self::DrawCardAction { player_index } => {
-                Self::draw_card_action(player_index, game_state)
-            }
-            Self::DrawCardsAction {
-                player_index,
-                count,
-            } => Self::draw_cards_action(player_index, count, game_state, players),
             Self::MultiAction(actions) => {
                 let mut new_state = game_state.clone();
                 for action in actions {
@@ -72,19 +63,12 @@ pub fn perform(
                 }
                 Ok(game_state.clone())
             }
-            Self::AddMana {
-                player,
-                mana,
-            } => Self::add_mana_action(player, mana, game_state),
-            Self::DealDamage {
-                destination,
-                amount,
-            } => Self::deal_damage(destination, amount, game_state),
+            Self::AddMana { player, mana } => Self::add_mana_action(player, mana, game_state),
         }
     }
 
     fn untap_players_permanents(
-        _player_index: usize,
+        _player: PerformablePlayerIdentifier,
         game_state: &GameSnapshot,
         _players: &mut [&mut dyn PlayerAgent],
     ) -> Result<GameSnapshot, ActionError> {
@@ -92,22 +76,26 @@ pub fn perform(
     }
 
     fn draw_cards_action(
-        player_index: usize,
+        player: PerformablePlayerIdentifier,
         count: usize,
         game_state: &GameSnapshot,
         players: &mut [&mut dyn PlayerAgent],
     ) -> Result<GameSnapshot, ActionError> {
         Self::perform(
-            Self::MultiAction(vec![Self::DrawCardAction { player_index }; count]),
+            Self::MultiAction(vec![Self::DrawCardAction { player }; count]),
             &game_state,
             players,
         )
     }
 
     fn draw_card_action(
-        player_index: usize,
+        player: PerformablePlayerIdentifier,
         game_state: &GameSnapshot,
     ) -> Result<GameSnapshot, ActionError> {
+        let player_index = match player {
+            PerformablePlayerIdentifier::Index(index) => index,
+        };
+
         let mut game_state = game_state.clone();
         let Some(card) = game_state.player_states[player_index].library.pop() else {
             game_state.player_states[player_index].drawn_from_empty_since_last_check = true;
@@ -120,10 +108,13 @@ pub fn perform(
     }
 
     fn cleanup_action(
-        player_index: usize,
+        player: PerformablePlayerIdentifier,
         game_state: &GameSnapshot,
         players: &mut [&mut dyn PlayerAgent],
     ) -> Result<GameSnapshot, ActionError> {
+        let player_index = match player {
+            PerformablePlayerIdentifier::Index(index) => index,
+        };
         let active_player_hand_size = game_state.player_states[player_index].hand.len();
         let max_hand_size = 7;
         if active_player_hand_size > max_hand_size {

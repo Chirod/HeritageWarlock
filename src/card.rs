@@ -1,4 +1,4 @@
-use crate::action::Action;
+use crate::action::PerformableAction;
 use enumset::{EnumSet, EnumSetType};
 use pest::Parser;
 use pest_derive::Parser;
@@ -139,6 +139,16 @@ impl TypeLine {
     }
 }
 
+pub enum TargetCriteria {
+    Any,
+}
+
+#[derive(Debug, Clone)]
+enum Action {
+    AddMana(Vec<ManaType>),
+    DealDamageTarget(TargetCriteria),
+}
+
 #[derive(Debug, Clone)]
 struct ActivatedAbility {
     cost: Cost,
@@ -169,10 +179,12 @@ impl Card {
                     for pair in pair.into_inner() {
                         match pair.as_rule() {
                             Rule::CARD_NAME => card.name = pair.as_str().to_string(),
-                            Rule::MANA_COST => card.mana_cost = Self::parse_mana_cost(pair),
-                            Rule::TYPE_LINE => card.types = Self::parse_type_line(pair),
+                            Rule::MANA_COST => {
+                                card.mana_cost = Self::parse_mana_cost(pair).unwrap()
+                            }
+                            Rule::TYPE_LINE => card.types = Self::parse_type_line(pair).unwrap(),
                             Rule::PERMANENT_CARD_TEXT => {
-                                card.abilities = Self::parse_permanent_text(pair)
+                                card.abilities = Self::parse_permanent_text(pair).unwrap()
                             }
                             Rule::SORCERY_CARD_TEXT => todo!(),
                             _ => unreachable!(),

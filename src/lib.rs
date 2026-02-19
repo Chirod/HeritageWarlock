@@ -2,9 +2,8 @@ mod action;
 mod card;
 mod game_state;
 
-use action::Action;
-use game_state::GameSnapshot;
-use game_state::GameState;
+use action::*;
+use game_state::*;
 
 pub trait PlayerAgent {
     fn discard_to_hand_size(
@@ -137,8 +136,8 @@ fn play_turn(
 ) -> Result<GameState, MainExceptional> {
     // untap step
     game.append(
-        Action::UntapPlayersPermanents {
-            player_index: active_player_index,
+        PerformableAction::UntapPlayersPermanents {
+            player: PerformablePlayerIdentifier::Index(active_player_index),
         }
         .perform(game.current_state(), players)?,
     );
@@ -148,7 +147,7 @@ fn play_turn(
         active_player_index,
     )?);
     game.append(
-        Action::DrawCardAction {
+        PerformableAction::DrawCardAction {
             player_index: active_player_index,
         }
         .perform(game.current_state(), players)?,
@@ -200,7 +199,7 @@ fn play_turn(
     )?);
     // cleanup (possible priority)
     game.append(
-        Action::CleanupAction {
+        PerformableAction::CleanupAction {
             player_index: active_player_index,
         }
         .perform(game.current_state(), players)?,
